@@ -20,9 +20,7 @@
     overflow: hidden;
   }
 
-  header {
-    text-align: center;
-  }
+  header { text-align: center; }
 
   .title {
     font-size: 1.1rem;
@@ -42,14 +40,13 @@
   }
 
   .dot {
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: #444;
     transition: background 0.3s;
   }
-  .dot.connected { background: #40f080; }
-  .dot.connecting { background: #f0c040; animation: pulse 1s infinite; }
+  .dot.connected   { background: #40f080; }
+  .dot.connecting  { background: #f0c040; animation: pulse 1s infinite; }
 
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
@@ -60,10 +57,8 @@
     letter-spacing: 0.08em;
     color: #666;
   }
-
   .telemetry span { color: #f0c040; }
 
-  /* Joystick area */
   .joystick-area {
     display: flex;
     flex-direction: column;
@@ -73,49 +68,29 @@
     justify-content: center;
   }
 
-  .joystick-wrapper {
-    position: relative;
-    width: 240px;
-    height: 240px;
-  }
-
   .joystick-base {
-    width: 240px;
-    height: 240px;
+    width: 240px; height: 240px;
     border-radius: 50%;
     border: 2px solid #2a2a2a;
     background: radial-gradient(circle at center, #1a1a1a 0%, #111 100%);
     position: relative;
   }
 
-  /* Crosshair lines */
-  .joystick-base::before,
-  .joystick-base::after {
-    content: '';
-    position: absolute;
-    background: #222;
+  .joystick-base::before, .joystick-base::after {
+    content: ''; position: absolute; background: #222;
   }
-  .joystick-base::before {
-    width: 1px; height: 100%;
-    left: 50%; top: 0;
-  }
-  .joystick-base::after {
-    height: 1px; width: 100%;
-    top: 50%; left: 0;
-  }
+  .joystick-base::before { width:1px; height:100%; left:50%; top:0; }
+  .joystick-base::after  { height:1px; width:100%; top:50%; left:0; }
 
   .joystick-thumb {
-    width: 72px;
-    height: 72px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #f0c040, #b08000);
     border: 2px solid #f0d060;
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    transition: transform 0.05s;
     box-shadow: 0 4px 20px rgba(240,192,64,0.3);
-    cursor: grab;
     pointer-events: none;
   }
 
@@ -126,14 +101,10 @@
     text-transform: uppercase;
     position: absolute;
   }
-  .label-fwd  { top: 8px;    left: 50%; transform: translateX(-50%); }
-  .label-rev  { bottom: 8px; left: 50%; transform: translateX(-50%); }
+  .label-fwd { top:8px;    left:50%; transform:translateX(-50%); }
+  .label-rev { bottom:8px; left:50%; transform:translateX(-50%); }
 
-  /* Speed bar */
-  .speed-display {
-    width: 240px;
-    text-align: center;
-  }
+  .speed-display { width: 240px; text-align: center; }
 
   .speed-bar-track {
     height: 6px;
@@ -145,14 +116,13 @@
   }
 
   .speed-bar-fill {
-    height: 100%;
-    width: 0%;
+    height: 100%; width: 0%;
     background: #f0c040;
     border-radius: 3px;
-    transition: width 0.05s, background 0.1s;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
+    transition: width 0.05s, background 0.1s;
   }
 
   .speed-value {
@@ -163,7 +133,6 @@
   }
   .speed-value span { color: #f0c040; }
 
-  /* Connect button */
   .connect-btn {
     background: transparent;
     border: 1px solid #f0c040;
@@ -175,9 +144,8 @@
     padding: 12px 32px;
     border-radius: 2px;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s;
   }
-  .connect-btn:active { background: #f0c040; color: #0d0d0d; }
+  .connect-btn:active   { background: #f0c040; color: #0d0d0d; }
   .connect-btn:disabled { border-color: #333; color: #333; cursor: default; }
 
   .emergency-stop {
@@ -191,15 +159,10 @@
     padding: 10px 24px;
     border-radius: 2px;
     cursor: pointer;
-    transition: background 0.1s;
   }
   .emergency-stop:active { background: #800000; }
 
-  .bottom-row {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-  }
+  .bottom-row { display: flex; gap: 12px; align-items: center; }
 </style>
 </head>
 <body>
@@ -217,12 +180,10 @@
 </header>
 
 <div class="joystick-area">
-  <div class="joystick-wrapper">
-    <div class="joystick-base" id="joystick-base">
-      <div class="direction-label label-fwd">FWD</div>
-      <div class="direction-label label-rev">REV</div>
-      <div class="joystick-thumb" id="thumb"></div>
-    </div>
+  <div class="joystick-base" id="joystick-base">
+    <div class="direction-label label-fwd">FWD</div>
+    <div class="direction-label label-rev">REV</div>
+    <div class="joystick-thumb" id="thumb"></div>
   </div>
 
   <div class="speed-display">
@@ -239,17 +200,12 @@
 </div>
 
 <script>
-  // BLE config — must match Arduino sketch
   const SERVICE_UUID        = '12345678-1234-1234-1234-123456789abc';
   const CHARACTERISTIC_UUID = '12345678-1234-1234-1234-123456789abd';
 
-  let bleDevice = null;
-  let bleChar   = null;
-  let connected = false;
-  let sendInterval = null;
-  let currentSpeed = 0; // -100 to 100
+  let bleDevice = null, bleChar = null, connected = false;
+  let currentSpeed = 0;
 
-  // ── BLE ──────────────────────────────────────────────
   async function connectBLE() {
     try {
       setStatus('connecting');
@@ -263,108 +219,86 @@
       bleChar        = await service.getCharacteristic(CHARACTERISTIC_UUID);
       connected = true;
       setStatus('connected');
-      sendInterval = setInterval(sendSpeed, 50); // 20Hz
+      setInterval(sendSpeed, 50);
     } catch(e) {
       setStatus('disconnected');
-      console.error(e);
     }
   }
 
   function onDisconnected() {
     connected = false;
-    clearInterval(sendInterval);
+    bleChar = null;
     setStatus('disconnected');
   }
 
-  function sendSpeed(speed) {
+  function disconnectBLE() {
+    emergencyStop();
+    setTimeout(() => {
+      if (bleDevice && bleDevice.gatt.connected) {
+        bleDevice.gatt.disconnect();
+      }
+      bleChar = null;
+      connected = false;
+      setStatus('disconnected');
+    }, 200);
+  }
+
+  function sendSpeed() {
     if (!connected || !bleChar) return;
-    const val = speed !== undefined ? speed : currentSpeed;
-    const data = new Uint8Array([val + 100]); // 0-200, 100=neutral
+    const data = new Uint8Array([currentSpeed + 100]);
     bleChar.writeValueWithoutResponse(data).catch(()=>{});
   }
 
   function emergencyStop() {
     currentSpeed = 0;
-    updateUI(0, 0);
-    sendSpeed(0);
+    updateUI(0);
   }
 
-  // ── Joystick ─────────────────────────────────────────
   const base  = document.getElementById('joystick-base');
   const thumb = document.getElementById('thumb');
-  const RADIUS = 84; // max travel from center px
-
+  const RADIUS = 84;
   let dragging = false;
-  let baseRect;
-
-  function getCenter() {
-    baseRect = base.getBoundingClientRect();
-    return { x: baseRect.left + baseRect.width/2, y: baseRect.top + baseRect.height/2 };
-  }
 
   function handleMove(clientX, clientY) {
-    const c = getCenter();
-    let dy = clientY - c.y;
-    // Clamp to radius
-    dy = Math.max(-RADIUS, Math.min(RADIUS, dy));
-    // X stays centered (pure throttle/direction for now)
-    const thumbY = dy;
-    thumb.style.transform = `translate(calc(-50% + 0px), calc(-50% + ${thumbY}px))`;
-    // Speed: up = forward (+), down = reverse (-)
-    const speed = Math.round((-dy / RADIUS) * 100);
-    currentSpeed = speed;
-    updateUI(speed, thumbY);
+    const r  = base.getBoundingClientRect();
+    const cy = r.top + r.height / 2;
+    let dy = Math.max(-RADIUS, Math.min(RADIUS, clientY - cy));
+    thumb.style.transform = `translate(-50%, calc(-50% + ${dy}px))`;
+    currentSpeed = Math.round((-dy / RADIUS) * 100);
+    updateUI(currentSpeed);
   }
 
   function handleEnd() {
     dragging = false;
     thumb.style.transform = 'translate(-50%, -50%)';
     currentSpeed = 0;
-    updateUI(0, 0);
+    updateUI(0);
   }
 
-  // Touch
-  base.addEventListener('touchstart', e => {
-    e.preventDefault();
-    dragging = true;
-    handleMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: false });
-
-  base.addEventListener('touchmove', e => {
-    e.preventDefault();
-    if (!dragging) return;
-    handleMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: false });
-
-  base.addEventListener('touchend', e => { e.preventDefault(); handleEnd(); }, { passive: false });
-
-  // Mouse (desktop testing)
-  base.addEventListener('mousedown', e => { dragging = true; handleMove(e.clientX, e.clientY); });
+  base.addEventListener('touchstart', e => { e.preventDefault(); dragging = true;  handleMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  base.addEventListener('touchmove',  e => { e.preventDefault(); if (dragging) handleMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  base.addEventListener('touchend',   e => { e.preventDefault(); handleEnd(); }, { passive: false });
+  base.addEventListener('mousedown',  e => { dragging = true;  handleMove(e.clientX, e.clientY); });
   window.addEventListener('mousemove', e => { if (dragging) handleMove(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', () => { if (dragging) handleEnd(); });
+  window.addEventListener('mouseup',   () => { if (dragging) handleEnd(); });
 
-  // ── UI ───────────────────────────────────────────────
-  function updateUI(speed, thumbY) {
-    const pct = Math.abs(speed);
-    document.getElementById('speed-bar').style.width = pct + '%';
-    document.getElementById('speed-bar').style.background = speed > 0 ? '#40f080' : speed < 0 ? '#f04040' : '#f0c040';
-    document.getElementById('spd-label').textContent = pct;
-    document.getElementById('tel-spd').textContent = pct;
-    document.getElementById('tel-dir').textContent = speed > 0 ? 'FWD' : speed < 0 ? 'REV' : 'NEUTRAL';
+  function updateUI(spd) {
+    const pct = Math.abs(spd);
+    document.getElementById('speed-bar').style.width      = pct + '%';
+    document.getElementById('speed-bar').style.background = spd > 0 ? '#40f080' : spd < 0 ? '#f04040' : '#f0c040';
+    document.getElementById('spd-label').textContent      = pct;
+    document.getElementById('tel-spd').textContent        = pct;
+    document.getElementById('tel-dir').textContent        = spd > 0 ? 'FWD' : spd < 0 ? 'REV' : 'NEUTRAL';
   }
 
   function setStatus(state) {
-    const dot  = document.getElementById('dot');
-    const text = document.getElementById('status-text');
-    const btn  = document.getElementById('connect-btn');
+    const dot = document.getElementById('dot');
+    const txt = document.getElementById('status-text');
+    const btn = document.getElementById('connect-btn');
     dot.className = 'dot ' + state;
-    if (state === 'connected')    { text.textContent = 'Connected'; btn.textContent = 'Disconnect'; btn.onclick = disconnectBLE; }
-    if (state === 'connecting')   { text.textContent = 'Connecting...'; btn.disabled = true; }
-    if (state === 'disconnected') { text.textContent = 'Disconnected'; btn.textContent = 'Connect'; btn.onclick = connectBLE; btn.disabled = false; }
-  }
-
-  function disconnectBLE() {
-    if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
+    if (state === 'connected')    { txt.textContent = 'Connected';     btn.textContent = 'Disconnect'; btn.onclick = disconnectBLE;  btn.disabled = false; }
+    if (state === 'connecting')   { txt.textContent = 'Connecting...'; btn.disabled = true; }
+    if (state === 'disconnected') { txt.textContent = 'Disconnected';  btn.textContent = 'Connect';    btn.onclick = connectBLE;     btn.disabled = false; }
   }
 </script>
 </body>
