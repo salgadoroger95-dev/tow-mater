@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tow Mater Control</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; touch-action: none; }
+
+  body {
+    background: #0d0d0d;
+    color: #f0f0f0;
+    font-family: 'Courier New', monospace;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 16px;
+    overflow: hidden;
+  }
+
+  header {
+    text-align: center;
+  }
+
+  .title {
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #f0c040;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    color: #888;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #444;
+    transition: background 0.3s;
+  }
+  .dot.connected { background: #40f080; }
+  .dot.connecting { background: #f0c040; animation: pulse 1s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .telemetry {
+    display: flex;
+    gap: 24px;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: #666;
+  }
+
+  .telemetry span { color: #f0c040; }
+
+  /* Joystick area */
+  .joystick-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .joystick-wrapper {
+    position: relative;
+    width: 240px;
+    height: 240px;
+  }
+
+  .joystick-base {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    border: 2px solid #2a2a2a;
+    background: radial-gradient(circle at center, #1a1a1a 0%, #111 100%);
+    position: relative;
+  }
+
+  /* Crosshair lines */
+  .joystick-base::before,
+  .joystick-base::after {
+    content: '';
+    position: absolute;
+    background: #222;
+  }
+  .joystick-base::before {
+    width: 1px; height: 100%;
+    left: 50%; top: 0;
+  }
+  .joystick-base::after {
+    height: 1px; width: 100%;
+    top: 50%; left: 0;
+  }
+
+  .joystick-thumb {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f0c040, #b08000);
+    border: 2px solid #f0d060;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s;
+    box-shadow: 0 4px 20px rgba(240,192,64,0.3);
+    cursor: grab;
+    pointer-events: none;
+  }
+
+  .direction-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: #444;
+    text-transform: uppercase;
+    position: absolute;
+  }
+  .label-fwd  { top: 8px;    left: 50%; transform: translateX(-50%); }
+  .label-rev  { bottom: 8px; left: 50%; transform: translateX(-50%); }
+
+  /* Speed bar */
+  .speed-display {
+    width: 240px;
+    text-align: center;
+  }
+
+  .speed-bar-track {
+    height: 6px;
+    background: #1a1a1a;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #2a2a2a;
+  }
+
+  .speed-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #f0c040;
+    border-radius: 3px;
+    transition: width 0.05s, background 0.1s;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .speed-value {
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: #666;
+    letter-spacing: 0.1em;
+  }
+  .speed-value span { color: #f0c040; }
+
+  /* Connect button */
+  .connect-btn {
+    background: transparent;
+    border: 1px solid #f0c040;
+    color: #f0c040;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 12px 32px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .connect-btn:active { background: #f0c040; color: #0d0d0d; }
+  .connect-btn:disabled { border-color: #333; color: #333; cursor: default; }
+
+  .emergency-stop {
+    background: #2a0000;
+    border: 1px solid #800000;
+    color: #ff4040;
+    font-family: 'Courier New', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .emergency-stop:active { background: #800000; }
+
+  .bottom-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">⚡ Tow Mater</div>
+  <div class="status-row">
+    <div class="dot" id="dot"></div>
+    <span id="status-text">Disconnected</span>
+  </div>
+  <div class="telemetry">
+    DIR: <span id="tel-dir">NEUTRAL</span> &nbsp;|&nbsp;
+    SPD: <span id="tel-spd">0</span>%
+  </div>
+</header>
+
+<div class="joystick-area">
+  <div class="joystick-wrapper">
+    <div class="joystick-base" id="joystick-base">
+      <div class="direction-label label-fwd">FWD</div>
+      <div class="direction-label label-rev">REV</div>
+      <div class="joystick-thumb" id="thumb"></div>
+    </div>
+  </div>
+
+  <div class="speed-display">
+    <div class="speed-bar-track">
+      <div class="speed-bar-fill" id="speed-bar"></div>
+    </div>
+    <div class="speed-value">SPEED <span id="spd-label">0</span>%</div>
+  </div>
+</div>
+
+<div class="bottom-row">
+  <button class="connect-btn" id="connect-btn" onclick="connectBLE()">Connect</button>
+  <button class="emergency-stop" onclick="emergencyStop()">■ STOP</button>
+</div>
+
+<script>
+  // BLE config — must match Arduino sketch
+  const SERVICE_UUID        = '12345678-1234-1234-1234-123456789abc';
+  const CHARACTERISTIC_UUID = '12345678-1234-1234-1234-123456789abd';
+
+  let bleDevice = null;
+  let bleChar   = null;
+  let connected = false;
+  let sendInterval = null;
+  let currentSpeed = 0; // -100 to 100
+
+  // ── BLE ──────────────────────────────────────────────
+  async function connectBLE() {
+    try {
+      setStatus('connecting');
+      bleDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'TowMater' }],
+        optionalServices: [SERVICE_UUID]
+      });
+      bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+      const server  = await bleDevice.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      bleChar        = await service.getCharacteristic(CHARACTERISTIC_UUID);
+      connected = true;
+      setStatus('connected');
+      sendInterval = setInterval(sendSpeed, 50); // 20Hz
+    } catch(e) {
+      setStatus('disconnected');
+      console.error(e);
+    }
+  }
+
+  function onDisconnected() {
+    connected = false;
+    clearInterval(sendInterval);
+    setStatus('disconnected');
+  }
+
+  function sendSpeed(speed) {
+    if (!connected || !bleChar) return;
+    const val = speed !== undefined ? speed : currentSpeed;
+    const data = new Uint8Array([val + 100]); // 0-200, 100=neutral
+    bleChar.writeValueWithoutResponse(data).catch(()=>{});
+  }
+
+  function emergencyStop() {
+    currentSpeed = 0;
+    updateUI(0, 0);
+    sendSpeed(0);
+  }
+
+  // ── Joystick ─────────────────────────────────────────
+  const base  = document.getElementById('joystick-base');
+  const thumb = document.getElementById('thumb');
+  const RADIUS = 84; // max travel from center px
+
+  let dragging = false;
+  let baseRect;
+
+  function getCenter() {
+    baseRect = base.getBoundingClientRect();
+    return { x: baseRect.left + baseRect.width/2, y: baseRect.top + baseRect.height/2 };
+  }
+
+  function handleMove(clientX, clientY) {
+    const c = getCenter();
+    let dy = clientY - c.y;
+    // Clamp to radius
+    dy = Math.max(-RADIUS, Math.min(RADIUS, dy));
+    // X stays centered (pure throttle/direction for now)
+    const thumbY = dy;
+    thumb.style.transform = `translate(calc(-50% + 0px), calc(-50% + ${thumbY}px))`;
+    // Speed: up = forward (+), down = reverse (-)
+    const speed = Math.round((-dy / RADIUS) * 100);
+    currentSpeed = speed;
+    updateUI(speed, thumbY);
+  }
+
+  function handleEnd() {
+    dragging = false;
+    thumb.style.transform = 'translate(-50%, -50%)';
+    currentSpeed = 0;
+    updateUI(0, 0);
+  }
+
+  // Touch
+  base.addEventListener('touchstart', e => {
+    e.preventDefault();
+    dragging = true;
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  base.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!dragging) return;
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  base.addEventListener('touchend', e => { e.preventDefault(); handleEnd(); }, { passive: false });
+
+  // Mouse (desktop testing)
+  base.addEventListener('mousedown', e => { dragging = true; handleMove(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { if (dragging) handleMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', () => { if (dragging) handleEnd(); });
+
+  // ── UI ───────────────────────────────────────────────
+  function updateUI(speed, thumbY) {
+    const pct = Math.abs(speed);
+    document.getElementById('speed-bar').style.width = pct + '%';
+    document.getElementById('speed-bar').style.background = speed > 0 ? '#40f080' : speed < 0 ? '#f04040' : '#f0c040';
+    document.getElementById('spd-label').textContent = pct;
+    document.getElementById('tel-spd').textContent = pct;
+    document.getElementById('tel-dir').textContent = speed > 0 ? 'FWD' : speed < 0 ? 'REV' : 'NEUTRAL';
+  }
+
+  function setStatus(state) {
+    const dot  = document.getElementById('dot');
+    const text = document.getElementById('status-text');
+    const btn  = document.getElementById('connect-btn');
+    dot.className = 'dot ' + state;
+    if (state === 'connected')    { text.textContent = 'Connected'; btn.textContent = 'Disconnect'; btn.onclick = disconnectBLE; }
+    if (state === 'connecting')   { text.textContent = 'Connecting...'; btn.disabled = true; }
+    if (state === 'disconnected') { text.textContent = 'Disconnected'; btn.textContent = 'Connect'; btn.onclick = connectBLE; btn.disabled = false; }
+  }
+
+  function disconnectBLE() {
+    if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
+  }
+</script>
+</body>
+</html>
