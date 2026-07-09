@@ -22,13 +22,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 20px;
+    padding: 5px 16px;
     border-bottom: 1px solid #1a1a1a;
     flex-shrink: 0;
+    height: 36px;
   }
 
   .title {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     letter-spacing: 0.25em;
     text-transform: uppercase;
     color: #f0c040;
@@ -38,7 +39,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 0.1em;
     color: #666;
   }
@@ -59,10 +60,10 @@
     border: 1px solid #f0c040;
     color: #f0c040;
     font-family: 'Courier New', monospace;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 2px;
     cursor: pointer;
   }
@@ -74,31 +75,36 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 24px;
-    gap: 12px;
+    padding: 6px 16px;
+    gap: 8px;
+    min-height: 0;
   }
 
   .joystick-col {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    flex: 1;
   }
 
   .joystick-label {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     letter-spacing: 0.2em;
     color: #444;
     text-transform: uppercase;
   }
 
   .joystick-base {
-    width: 180px; height: 180px;
+    /* Fill available height in landscape — capped so it stays circular */
+    width: min(42vw, calc(100dvh - 120px));
+    height: min(42vw, calc(100dvh - 120px));
     border-radius: 50%;
     border: 2px solid #222;
     background: radial-gradient(circle at center, #1a1a1a 0%, #111 100%);
     position: relative;
     cursor: grab;
+    flex-shrink: 0;
   }
 
   .joystick-base::before, .joystick-base::after {
@@ -108,29 +114,30 @@
   .joystick-base::after  { height:1px; width:100%; top:50%; left:0; }
 
   .thumb {
-    width: 60px; height: 60px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #f0c040, #a07000);
     border: 2px solid #f0d060;
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 3px 16px rgba(240,192,64,0.25);
+    box-shadow: 0 3px 20px rgba(240,192,64,0.3);
     pointer-events: none;
   }
 
   .dir-label {
-    font-size: 0.55rem;
+    font-size: 0.5rem;
     letter-spacing: 0.12em;
     color: #333;
     text-transform: uppercase;
     position: absolute;
   }
-  .lbl-f { top:6px;    left:50%; transform:translateX(-50%); }
-  .lbl-r { bottom:6px; left:50%; transform:translateX(-50%); }
+  .lbl-f { top:8px;    left:50%; transform:translateX(-50%); }
+  .lbl-r { bottom:8px; left:50%; transform:translateX(-50%); }
 
   .bar-track {
-    width: 180px; height: 5px;
+    width: 90%;
+    height: 5px;
     background: #1a1a1a;
     border-radius: 3px;
     border: 1px solid #222;
@@ -147,7 +154,7 @@
     transition: width 0.04s, background 0.1s;
   }
   .bar-val {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     letter-spacing: 0.1em;
     color: #555;
     text-align: center;
@@ -158,35 +165,67 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    min-width: 120px;
+    gap: 10px;
+    width: 100px;
+    flex-shrink: 0;
   }
 
   .telemetry {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     letter-spacing: 0.1em;
     color: #555;
     text-align: center;
   }
   .telemetry span { color: #f0c040; }
 
+  .estop-wrap {
+    position: relative;
+    width: 100%;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
   .estop {
     background: #1a0000;
     border: 1px solid #600000;
     color: #ff3030;
     font-family: 'Courier New', monospace;
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    padding: 12px 16px;
+    padding: 10px 12px;
     border-radius: 2px;
     cursor: pointer;
     width: 100%;
+    position: relative;
+    z-index: 1;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  .estop:active { background: #600000; }
+
+  .estop.latched {
+    background: #600000;
+    border-color: #ff3030;
+    color: #ff6060;
+  }
+
+  .estop.rearming {
+    color: #ffaa30;
+    border-color: #ffaa30;
+  }
+
+  .rearm-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    width: 0%;
+    background: #ffaa30;
+    z-index: 2;
+    transition: none;
+  }
 </style>
 </head>
 <body>
@@ -218,7 +257,10 @@
       <div>L: <span id="tel-l">NEUTRAL</span></div>
       <div>R: <span id="tel-r">NEUTRAL</span></div>
     </div>
-    <button class="estop" onclick="emergencyStop()">■ STOP</button>
+    <div class="estop-wrap">
+      <button class="estop" id="estop-btn">■ STOP</button>
+      <div class="rearm-progress" id="rearm-progress"></div>
+    </div>
   </div>
 
   <div class="joystick-col">
@@ -240,7 +282,6 @@
 
   let bleChar = null, connected = false, bleDevice = null;
   let speedL = 0, speedR = 0;
-  const RADIUS = 65;
 
   async function connectBLE() {
     try {
@@ -281,40 +322,123 @@
     bleChar.writeValueWithoutResponse(data).catch(()=>{});
   }
 
+  // ── E-Stop state ─────────────────────────────────────────
+  let estopped    = false;
+  let joysticksEnabled = true;
+  let rearmTimer  = null;
+  let rearmStart  = null;
+  const REARM_MS  = 2000;
+
+  const estopBtn      = document.getElementById('estop-btn');
+  const rearmProgress = document.getElementById('rearm-progress');
+
   function emergencyStop() {
+    estopped = true;
+    joysticksEnabled = false;
     speedL = 0; speedR = 0;
     updateUI('left', 0);
     updateUI('right', 0);
+    // Send neutral immediately and keep sending via sendSpeeds interval
+    estopBtn.textContent = '■ STOPPED — HOLD TO REARM';
+    estopBtn.classList.add('latched');
   }
+
+  function startRearm() {
+    if (!estopped) return;
+    rearmStart = Date.now();
+    estopBtn.classList.add('rearming');
+    estopBtn.textContent = '▶ HOLD TO REARM...';
+
+    rearmTimer = setInterval(() => {
+      const elapsed = Date.now() - rearmStart;
+      const pct = Math.min(100, (elapsed / REARM_MS) * 100);
+      rearmProgress.style.width = pct + '%';
+
+      if (elapsed >= REARM_MS) {
+        clearInterval(rearmTimer);
+        rearmTimer = null;
+        rearmProgress.style.width = '0%';
+        estopped = false;
+        joysticksEnabled = true;
+        estopBtn.classList.remove('latched', 'rearming');
+        estopBtn.textContent = '■ STOP';
+      }
+    }, 30);
+  }
+
+  function cancelRearm() {
+    if (rearmTimer) {
+      clearInterval(rearmTimer);
+      rearmTimer = null;
+    }
+    rearmProgress.style.width = '0%';
+    if (estopped) {
+      estopBtn.classList.remove('rearming');
+      estopBtn.classList.add('latched');
+      estopBtn.textContent = '■ STOPPED — HOLD TO REARM';
+    }
+  }
+
+  // Tap when not stopped → stop
+  estopBtn.addEventListener('mousedown',  () => { if (!estopped) emergencyStop(); else startRearm(); });
+  estopBtn.addEventListener('mouseup',    cancelRearm);
+  estopBtn.addEventListener('mouseleave', cancelRearm);
+  estopBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (!estopped) emergencyStop(); else startRearm(); }, { passive: false });
+  estopBtn.addEventListener('touchend',   e => { e.preventDefault(); e.stopPropagation(); cancelRearm(); }, { passive: false });
 
   function makeJoystick(baseId, thumbId, side) {
     const base  = document.getElementById(baseId);
     const thumb = document.getElementById(thumbId);
-    let active = false;
+    let activeTouchId = null;
 
-    function move(clientX, clientY) {
+    function getRadius() {
+      return base.getBoundingClientRect().height / 2 - 10;
+    }
+
+    function move(clientY) {
+      if (!joysticksEnabled) return;
       const r  = base.getBoundingClientRect();
       const cy = r.top + r.height / 2;
-      let dy = Math.max(-RADIUS, Math.min(RADIUS, clientY - cy));
+      const radius = getRadius();
+      let dy = Math.max(-radius, Math.min(radius, clientY - cy));
       thumb.style.transform = `translate(-50%, calc(-50% + ${dy}px))`;
-      const spd = Math.round((-dy / RADIUS) * 100);
+      const spd = Math.round((-dy / radius) * 100);
       if (side === 'left') speedL = spd; else speedR = spd;
       updateUI(side, spd);
     }
 
     function release() {
-      active = false;
+      activeTouchId = null;
       thumb.style.transform = 'translate(-50%, -50%)';
       if (side === 'left') speedL = 0; else speedR = 0;
       updateUI(side, 0);
     }
 
-    base.addEventListener('touchstart', e => { e.preventDefault(); active = true;  move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-    base.addEventListener('touchmove',  e => { e.preventDefault(); if (active) move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
-    base.addEventListener('touchend',   e => { e.preventDefault(); release(); }, { passive: false });
-    base.addEventListener('mousedown',  e => { active = true; move(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', e => { if (active) move(e.clientX, e.clientY); });
-    window.addEventListener('mouseup',   () => { if (active) release(); });
+    base.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (activeTouchId === null) {
+        activeTouchId = e.changedTouches[0].identifier;
+        move(e.changedTouches[0].clientY);
+      }
+    }, { passive: false });
+
+    base.addEventListener('touchmove', e => {
+      e.preventDefault();
+      for (let t of e.changedTouches) {
+        if (t.identifier === activeTouchId) { move(t.clientY); break; }
+      }
+    }, { passive: false });
+
+    base.addEventListener('touchend', e => {
+      e.preventDefault();
+      for (let t of e.changedTouches) {
+        if (t.identifier === activeTouchId) { release(); break; }
+      }
+    }, { passive: false });
+
+    base.addEventListener('mousedown',   e => { activeTouchId = 'mouse'; move(e.clientY); });
+    window.addEventListener('mousemove', e => { if (activeTouchId === 'mouse') move(e.clientY); });
+    window.addEventListener('mouseup',   () => { if (activeTouchId === 'mouse') release(); });
   }
 
   makeJoystick('joy-left',  'thumb-left',  'left');
