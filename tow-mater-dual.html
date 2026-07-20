@@ -96,7 +96,6 @@
   }
 
   .joystick-base {
-    /* Fill available height in landscape — capped so it stays circular */
     width: min(42vw, calc(100dvh - 120px));
     height: min(42vw, calc(100dvh - 120px));
     border-radius: 50%;
@@ -161,12 +160,13 @@
   }
   .bar-val span { color: #f0c040; }
 
+  /* ── Center panel ── */
   .center-panel {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    width: 100px;
+    gap: 8px;
+    width: 120px;
     flex-shrink: 0;
   }
 
@@ -181,6 +181,60 @@
   }
   .telemetry span { color: #f0c040; }
 
+  /* ── Camera + compass box ── */
+  .cam-box {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    border: 1px solid #222;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #111;
+    flex-shrink: 0;
+  }
+
+  #cam-feed {
+    position: absolute;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0.85;
+  }
+
+  #compass-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  .cam-label {
+    font-size: 0.45rem;
+    letter-spacing: 0.15em;
+    color: #444;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  .cam-status {
+    font-size: 0.45rem;
+    letter-spacing: 0.1em;
+    color: #444;
+    text-align: center;
+  }
+  .cam-status.live { color: #40f080; }
+  .cam-status.err  { color: #f04040; }
+
+  /* ── Angle readout ── */
+  .angle-readout {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: #f0c040;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    min-height: 1em;
+  }
+
+  /* ── E-Stop ── */
   .estop-wrap {
     position: relative;
     width: 100%;
@@ -257,6 +311,15 @@
       <div>L: <span id="tel-l">NEUTRAL</span></div>
       <div>R: <span id="tel-r">NEUTRAL</span></div>
     </div>
+
+    <div class="cam-label">LINE HEADING</div>
+    <div class="cam-box">
+      <img id="cam-feed" crossorigin="anonymous" />
+      <canvas id="compass-canvas"></canvas>
+    </div>
+    <div class="cam-status" id="cam-status">NO SIGNAL</div>
+    <div class="angle-readout" id="angle-readout">—°</div>
+
     <div class="estop-wrap">
       <button class="estop" id="estop-btn">■ STOP</button>
       <div class="rearm-progress" id="rearm-progress"></div>
@@ -277,6 +340,7 @@
 </div>
 
 <script>
+  // ── BLE ──────────────────────────────────────────────────
   const SERVICE_UUID = '12345678-1234-1234-1234-123456789abc';
   const CHAR_UUID    = '12345678-1234-1234-1234-123456789abd';
 
@@ -301,8 +365,7 @@
   }
 
   function onDisconnected() {
-    connected = false;
-    bleChar = null;
+    connected = false; bleChar = null;
     setStatus('disconnected');
   }
 
@@ -310,8 +373,7 @@
     emergencyStop();
     setTimeout(() => {
       if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
-      bleChar = null;
-      connected = false;
+      bleChar = null; connected = false;
       setStatus('disconnected');
     }, 200);
   }
@@ -322,23 +384,18 @@
     bleChar.writeValueWithoutResponse(data).catch(()=>{});
   }
 
-  // ── E-Stop state ─────────────────────────────────────────
-  let estopped    = false;
-  let joysticksEnabled = true;
-  let rearmTimer  = null;
-  let rearmStart  = null;
-  const REARM_MS  = 2000;
+  // ── E-Stop ───────────────────────────────────────────────
+  let estopped = false, joysticksEnabled = true;
+  let rearmTimer = null, rearmStart = null;
+  const REARM_MS = 2000;
 
   const estopBtn      = document.getElementById('estop-btn');
   const rearmProgress = document.getElementById('rearm-progress');
 
   function emergencyStop() {
-    estopped = true;
-    joysticksEnabled = false;
+    estopped = true; joysticksEnabled = false;
     speedL = 0; speedR = 0;
-    updateUI('left', 0);
-    updateUI('right', 0);
-    // Send neutral immediately and keep sending via sendSpeeds interval
+    updateUI('left', 0); updateUI('right', 0);
     estopBtn.textContent = '■ STOPPED — HOLD TO REARM';
     estopBtn.classList.add('latched');
   }
@@ -348,18 +405,14 @@
     rearmStart = Date.now();
     estopBtn.classList.add('rearming');
     estopBtn.textContent = '▶ HOLD TO REARM...';
-
     rearmTimer = setInterval(() => {
       const elapsed = Date.now() - rearmStart;
       const pct = Math.min(100, (elapsed / REARM_MS) * 100);
       rearmProgress.style.width = pct + '%';
-
       if (elapsed >= REARM_MS) {
-        clearInterval(rearmTimer);
-        rearmTimer = null;
+        clearInterval(rearmTimer); rearmTimer = null;
         rearmProgress.style.width = '0%';
-        estopped = false;
-        joysticksEnabled = true;
+        estopped = false; joysticksEnabled = true;
         estopBtn.classList.remove('latched', 'rearming');
         estopBtn.textContent = '■ STOP';
       }
@@ -367,10 +420,7 @@
   }
 
   function cancelRearm() {
-    if (rearmTimer) {
-      clearInterval(rearmTimer);
-      rearmTimer = null;
-    }
+    if (rearmTimer) { clearInterval(rearmTimer); rearmTimer = null; }
     rearmProgress.style.width = '0%';
     if (estopped) {
       estopBtn.classList.remove('rearming');
@@ -379,25 +429,23 @@
     }
   }
 
-  // Tap when not stopped → stop
   estopBtn.addEventListener('mousedown',  () => { if (!estopped) emergencyStop(); else startRearm(); });
   estopBtn.addEventListener('mouseup',    cancelRearm);
   estopBtn.addEventListener('mouseleave', cancelRearm);
   estopBtn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); if (!estopped) emergencyStop(); else startRearm(); }, { passive: false });
   estopBtn.addEventListener('touchend',   e => { e.preventDefault(); e.stopPropagation(); cancelRearm(); }, { passive: false });
 
+  // ── Joysticks ────────────────────────────────────────────
   function makeJoystick(baseId, thumbId, side) {
     const base  = document.getElementById(baseId);
     const thumb = document.getElementById(thumbId);
     let activeTouchId = null;
 
-    function getRadius() {
-      return base.getBoundingClientRect().height / 2 - 10;
-    }
+    function getRadius() { return base.getBoundingClientRect().height / 2 - 10; }
 
     function move(clientY) {
       if (!joysticksEnabled) return;
-      const r  = base.getBoundingClientRect();
+      const r = base.getBoundingClientRect();
       const cy = r.top + r.height / 2;
       const radius = getRadius();
       let dy = Math.max(-radius, Math.min(radius, clientY - cy));
@@ -416,24 +464,17 @@
 
     base.addEventListener('touchstart', e => {
       e.preventDefault();
-      if (activeTouchId === null) {
-        activeTouchId = e.changedTouches[0].identifier;
-        move(e.changedTouches[0].clientY);
-      }
+      if (activeTouchId === null) { activeTouchId = e.changedTouches[0].identifier; move(e.changedTouches[0].clientY); }
     }, { passive: false });
 
     base.addEventListener('touchmove', e => {
       e.preventDefault();
-      for (let t of e.changedTouches) {
-        if (t.identifier === activeTouchId) { move(t.clientY); break; }
-      }
+      for (let t of e.changedTouches) { if (t.identifier === activeTouchId) { move(t.clientY); break; } }
     }, { passive: false });
 
     base.addEventListener('touchend', e => {
       e.preventDefault();
-      for (let t of e.changedTouches) {
-        if (t.identifier === activeTouchId) { release(); break; }
-      }
+      for (let t of e.changedTouches) { if (t.identifier === activeTouchId) { release(); break; } }
     }, { passive: false });
 
     base.addEventListener('mousedown',   e => { activeTouchId = 'mouse'; move(e.clientY); });
@@ -462,6 +503,177 @@
     if (state === 'connecting')   { txt.textContent = 'Connecting...'; btn.disabled = true; }
     if (state === 'disconnected') { txt.textContent = 'Disconnected';  btn.textContent = 'Connect';    btn.onclick = connectBLE;    btn.disabled = false; }
   }
+
+  // ── Camera + Line Heading ─────────────────────────────────
+  const STREAM_URL   = 'http://10.224.21.117/stream';
+  const BRIGHT_THRESH = 180; // pixel brightness 0-255 to count as "white line"
+
+  const camFeed    = document.getElementById('cam-feed');
+  const canvas     = document.getElementById('compass-canvas');
+  const ctx        = canvas.getContext('2d');
+  const camStatus  = document.getElementById('cam-status');
+  const angleOut   = document.getElementById('angle-readout');
+
+  // Off-screen canvas for pixel analysis
+  const offscreen  = document.createElement('canvas');
+  const offCtx     = offscreen.getContext('2d', { willReadFrequently: true });
+
+  let lastAngle    = null;
+  let streamAlive  = false;
+
+  // Size the compass canvas to match its CSS box
+  function resizeCanvas() {
+    const box = canvas.parentElement.getBoundingClientRect();
+    canvas.width  = box.width;
+    canvas.height = box.height;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Start MJPEG stream
+  function startStream() {
+    camFeed.src = STREAM_URL + '?t=' + Date.now();
+    camFeed.onload = () => {
+      streamAlive = true;
+      camStatus.textContent = 'LIVE';
+      camStatus.className   = 'cam-status live';
+    };
+    camFeed.onerror = () => {
+      streamAlive = false;
+      camStatus.textContent = 'NO SIGNAL';
+      camStatus.className   = 'cam-status err';
+      angleOut.textContent  = '—°';
+      // Retry every 3s
+      setTimeout(startStream, 3000);
+    };
+  }
+  startStream();
+
+  // Analyse frame and draw arrow
+  function analyseFrame() {
+    if (!streamAlive) { requestAnimationFrame(analyseFrame); return; }
+
+    const W = camFeed.naturalWidth  || camFeed.width  || 320;
+    const H = camFeed.naturalHeight || camFeed.height || 240;
+
+    offscreen.width  = W;
+    offscreen.height = H;
+
+    try {
+      offCtx.drawImage(camFeed, 0, 0, W, H);
+    } catch(e) { requestAnimationFrame(analyseFrame); return; }
+
+    const imageData = offCtx.getImageData(0, 0, W, H);
+    const data      = imageData.data;
+
+    // Collect bright pixel positions
+    let sumX = 0, sumY = 0, count = 0;
+    const brightPts = [];
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const brightness = (data[i] * 0.299 + data[i+1] * 0.587 + data[i+2] * 0.114);
+        if (brightness > BRIGHT_THRESH) {
+          brightPts.push({ x, y });
+          sumX += x; sumY += y; count++;
+        }
+      }
+    }
+
+    // Need enough bright pixels to be meaningful
+    if (count < 50) {
+      drawNoLine();
+      requestAnimationFrame(analyseFrame);
+      return;
+    }
+
+    const cx = sumX / count;
+    const cy = sumY / count;
+
+    // PCA: compute covariance to find principal axis (line direction)
+    let sxx = 0, syy = 0, sxy = 0;
+    for (const p of brightPts) {
+      const dx = p.x - cx, dy = p.y - cy;
+      sxx += dx * dx; syy += dy * dy; sxy += dx * dy;
+    }
+
+    // Angle of principal axis in radians, then convert to degrees
+    let angle = 0.5 * Math.atan2(2 * sxy, sxx - syy); // -PI/2 to PI/2
+    let angleDeg = angle * 180 / Math.PI; // -90 to 90
+
+    // Smooth angle with simple EMA
+    if (lastAngle === null) lastAngle = angleDeg;
+    lastAngle = lastAngle * 0.7 + angleDeg * 0.3;
+
+    drawArrow(lastAngle);
+    angleOut.textContent = (lastAngle >= 0 ? '+' : '') + lastAngle.toFixed(1) + '°';
+
+    requestAnimationFrame(analyseFrame);
+  }
+
+  function drawArrow(angleDeg) {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H / 2;
+    const len = Math.min(W, H) * 0.38;
+
+    const rad = angleDeg * Math.PI / 180;
+    const dx = Math.cos(rad) * len;
+    const dy = Math.sin(rad) * len;
+
+    // Draw line through center (both directions since line has no preferred direction)
+    ctx.beginPath();
+    ctx.moveTo(cx - dx, cy - dy);
+    ctx.lineTo(cx + dx, cy + dy);
+    ctx.strokeStyle = '#f0c040';
+    ctx.lineWidth   = 2.5;
+    ctx.lineCap     = 'round';
+    ctx.stroke();
+
+    // Arrowhead at both ends
+    drawHead(ctx, cx + dx, cy + dy,  rad);
+    drawHead(ctx, cx - dx, cy - dy,  rad + Math.PI);
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#f0c040';
+    ctx.fill();
+  }
+
+  function drawHead(ctx, x, y, angle) {
+    const size = 8;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(
+      x - size * Math.cos(angle - Math.PI / 6),
+      y - size * Math.sin(angle - Math.PI / 6)
+    );
+    ctx.lineTo(
+      x - size * Math.cos(angle + Math.PI / 6),
+      y - size * Math.sin(angle + Math.PI / 6)
+    );
+    ctx.closePath();
+    ctx.fillStyle = '#f0c040';
+    ctx.fill();
+  }
+
+  function drawNoLine() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.beginPath();
+    ctx.arc(W/2, H/2, 6, 0, Math.PI * 2);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    angleOut.textContent = '—°';
+    lastAngle = null;
+  }
+
+  // Start analysis loop after a short delay to let stream initialize
+  setTimeout(analyseFrame, 1000);
 </script>
 </body>
 </html>
